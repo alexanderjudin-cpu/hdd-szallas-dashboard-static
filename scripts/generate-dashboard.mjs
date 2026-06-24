@@ -84,6 +84,10 @@ function normRow(row) {
   const lostCost = num(row.lost_cost ?? row.becsult_havi_bukas ?? 0);
   const fixedCost = num(row.fixed_cost ?? row.fix_dijas_havi_koltseg ?? 0);
   const variableCost = num(row.variable_cost ?? row.fo_ej_alapu_koltseg ?? Math.max(cost - fixedCost, 0));
+  const fixedAddressCount = Math.round(num(row.fixed_address_count ?? row.fix_dijas_cimek ?? 0));
+  const fixedCapacity = Math.round(num(row.fixed_capacity ?? row.fix_ferohely ?? 0));
+  const fixedEmployees = Math.round(num(row.fixed_employees ?? row.fix_lako ?? 0));
+  const fixedFree = Math.max(0, Math.round(num(row.fixed_free ?? row.fix_ures_de_fizetett ?? (fixedCapacity - fixedEmployees))));
   const nights = Math.round(num(row.nights ?? row.ejszakak ?? (employees * 30)));
   const addressCount = Math.round(num(row.address_count ?? row.cim_db ?? row.sorok ?? 1));
   return {
@@ -102,6 +106,10 @@ function normRow(row) {
     lost_cost: lostCost,
     fixed_cost: fixedCost,
     variable_cost: variableCost,
+    fixed_address_count: fixedAddressCount,
+    fixed_capacity: fixedCapacity,
+    fixed_employees: fixedEmployees,
+    fixed_free: fixedFree,
     refreshed_at: row.refreshed_at || null
   };
 }
@@ -146,12 +154,15 @@ function buildDash(feedRows, geo) {
     p.koltseg += r.cost;
     p.sorok += r.address_count || 1;
 
-    const slotCost = r.capacity > 0 ? r.cost / r.capacity : 0;
-    const utilization = r.capacity > 0 ? r.employees / r.capacity : 0;
+    const hasFixedOccupancy = r.fixed_address_count > 0 || r.fixed_capacity > 0 || r.fixed_cost > 0 || r.lost_cost > 0;
+    if (!hasFixedOccupancy) continue;
+
+    const fixedSlotCost = r.fixed_capacity > 0 ? r.fixed_cost / r.fixed_capacity : 0;
+    const utilization = r.fixed_capacity > 0 ? r.fixed_employees / r.fixed_capacity : 0;
     const utilPct = Math.round(utilization * 1000) / 10;
-    let state = 'Nincs kapacitás adat';
-    if (r.capacity > 0) {
-      if (r.free <= 0) state = 'Telített';
+    let state = 'Nincs fix kapacitás adat';
+    if (r.fixed_capacity > 0) {
+      if (r.fixed_free <= 0) state = 'Telített';
       else if (utilPct >= 80) state = 'Rendben';
       else if (utilPct >= 50) state = 'Figyelendő';
       else state = 'Magas veszteség';
@@ -161,27 +172,28 @@ function buildDash(feedRows, geo) {
       address: r.city,
       provider: r.szallasado,
       company: r.ceg,
-      fixed_type: r.fixed_cost > 0 ? 'Fix díjas / városi összesítő' : 'Városi összesítő',
-      capacity: r.capacity,
-      current: r.employees,
-      free: r.free,
+      fixed_type: 'Fix díjas / városi összesítő',
+      capacity: r.fixed_capacity,
+      current: r.fixed_employees,
+      free: r.fixed_free,
       utilization,
       util_pct: utilPct,
       days: 30,
-      period_cost: Math.round(r.cost),
+      period_cost: Math.round(r.fixed_cost),
       lost_cost: Math.round(r.lost_cost),
-      occupied_cost: Math.max(Math.round(r.cost - r.lost_cost), 0),
+      occupied_cost: Math.max(Math.round(r.fixed_cost - r.lost_cost), 0),
       fixed_cost: Math.round(r.fixed_cost),
       variable_cost: Math.round(r.variable_cost),
-      slot_cost: Math.round(slotCost),
+      slot_cost: Math.round(fixedSlotCost),
       partners: r.partner,
       partner_count: Math.max(1, partners.length),
+      address_count: r.fixed_address_count,
       state
     });
   }
 
   const sort = arr => arr.sort((a, b) => num(b.munkavallalok) - num(a.munkavallalok) || num(b.koltseg) - num(a.koltseg));
-  const OCC_FIX = occ.sort((a, b) => num(b.current) - num(a.current) || num(b.period_cost) - num(a.period_cost));
+  const OCC_FIX = occ.sort((a, b) => num(b.lost_cost) - num(a.lost_cost) || num(b.free) - num(a.free));
   const cap = OCC_FIX.reduce((a, r) => a + r.capacity, 0);
   const cur = OCC_FIX.reduce((a, r) => a + r.current, 0);
 
@@ -194,7 +206,8 @@ function buildDash(feedRows, geo) {
     GEO: geo,
     OCC_FIX,
     OCC_SUMMARY: {
-      address_count: OCC_FIX.length,
+      address_count: OCC_FIX.reduce((a, r) => a + (r.address_count || 0), 0),
+      city_count: OCC_FIX.length,
       capacity_total: cap,
       current_total: cur,
       free_total: OCC_FIX.reduce((a, r) => a + r.free, 0),
@@ -202,8 +215,12 @@ function buildDash(feedRows, geo) {
       period_cost_total: OCC_FIX.reduce((a, r) => a + r.period_cost, 0),
       lost_cost_total: OCC_FIX.reduce((a, r) => a + r.lost_cost, 0),
       fixed_cost_total: OCC_FIX.reduce((a, r) => a + r.fixed_cost, 0),
-      variable_cost_total: OCC_FIX.reduce((a, r) => a + r.variable_cost, 0),
-      critical_count: OCC_FIX.filter(r => r.capacity > 0 && r.util_pct < 70).length
+      variable_cost_total: rows.reduce((a, r) => a + r.variable_cost, 0),
+      portfolio_employee_total: rows.reduce((a, r) => a + r.employees, 0),
+      portfolio_capacity_total: rows.reduce((a, r) => a + r.capacity, 0),
+      portfolio_free_total: rows.reduce((a, r) => a + r.free, 0),
+      portfolio_cost_total: rows.reduce((a, r) => a + r.cost, 0),
+      critical_count: OCC_FIX.filter(r => r.capacity > 0 && r.util_pct < 70).reduce((a, r) => a + (r.address_count || 1), 0)
     },
     GENERATED_AT: new Date().toISOString()
   };
@@ -243,7 +260,7 @@ async function loadFeedRows() {
     console.log('[build] Using sample feed');
     return JSON.parse(await fs.readFile(SAMPLE_PATH, 'utf8'));
   }
-  const select = 'city,ceg,partner,szallasado,address_count,employees,capacity,free,nights,cost,lost_cost,fixed_cost,variable_cost,refreshed_at';
+  const select = 'city,ceg,partner,szallasado,address_count,employees,capacity,free,nights,cost,lost_cost,fixed_cost,variable_cost,fixed_address_count,fixed_capacity,fixed_employees,fixed_free,refreshed_at';
   const query = `/rest/v1/${encodeURIComponent(FEED_TABLE)}?select=${encodeURIComponent(select)}&order=employees.desc`;
   console.log(`[build] Fetching Supabase feed: ${FEED_TABLE}`);
   return await supabaseFetch(query);
@@ -305,13 +322,22 @@ async function main() {
     ceg_rows: dash.EMBEDDED.ceg.length,
     partner_rows: dash.EMBEDDED.partner.length,
     occ_rows: dash.OCC_FIX.length,
+    fixed_address_count: dash.OCC_SUMMARY.address_count,
+    fixed_capacity_total: dash.OCC_SUMMARY.capacity_total,
+    fixed_current_total: dash.OCC_SUMMARY.current_total,
+    fixed_free_total: dash.OCC_SUMMARY.free_total,
+    fixed_util_avg: dash.OCC_SUMMARY.util_avg,
     lost_cost_total: dash.OCC_SUMMARY.lost_cost_total,
     fixed_cost_total: dash.OCC_SUMMARY.fixed_cost_total,
-    variable_cost_total: dash.OCC_SUMMARY.variable_cost_total
+    variable_cost_total: dash.OCC_SUMMARY.variable_cost_total,
+    portfolio_employee_total: dash.OCC_SUMMARY.portfolio_employee_total,
+    portfolio_capacity_total: dash.OCC_SUMMARY.portfolio_capacity_total,
+    portfolio_cost_total: dash.OCC_SUMMARY.portfolio_cost_total
   }, null, 2), 'utf8');
 
   console.log(`[build] Done: ${OUT_HTML}`);
-  console.log(`[build] Feed rows: ${feedRows.length}, dashboard rows: ${dash.OCC_FIX.length}`);
+  console.log(`[build] Feed rows: ${feedRows.length}, fixed dashboard rows: ${dash.OCC_FIX.length}`);
+  console.log(`[build] Fixed free total: ${dash.OCC_SUMMARY.free_total}`);
   console.log(`[build] Lost cost total: ${dash.OCC_SUMMARY.lost_cost_total}`);
 }
 
