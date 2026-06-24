@@ -1,0 +1,67 @@
+[
+  {
+    "city": "Budapest",
+    "ceg": "HDD",
+    "partner": "BÁRDI AUTÓ, KNORR, Samsung SDI",
+    "szallasado": "Több szállásadó",
+    "address_count": 176,
+    "employees": 543,
+    "capacity": 1489,
+    "free": 946,
+    "nights": 0,
+    "cost": 18444543.00131,
+    "refreshed_at": "2026-06-24T00:00:00Z"
+  },
+  {
+    "city": "Komárom",
+    "ceg": "HDD",
+    "partner": "SK BATTERY, BorgWarner",
+    "szallasado": "Több szállásadó",
+    "address_count": 27,
+    "employees": 110,
+    "capacity": 453,
+    "free": 343,
+    "nights": 0,
+    "cost": 9475600.001421,
+    "refreshed_at": "2026-06-24T00:00:00Z"
+  },
+  {
+    "city": "Tatabánya",
+    "ceg": "HDD",
+    "partner": "CLOUD NETWORK, SK BATTERY",
+    "szallasado": "Több szállásadó",
+    "address_count": 38,
+    "employees": 85,
+    "capacity": 63,
+    "free": 0,
+    "nights": 0,
+    "cost": 4175000,
+    "refreshed_at": "2026-06-24T00:00:00Z"
+  },
+  {
+    "city": "Gyöngyös",
+    "ceg": "HDD",
+    "partner": "B.BRAUN",
+    "szallasado": "Több szállásadó",
+    "address_count": 6,
+    "employees": 65,
+    "capacity": 90,
+    "free": 25,
+    "nights": 0,
+    "cost": 3186800,
+    "refreshed_at": "2026-06-24T00:00:00Z"
+  },
+  {
+    "city": "Győr",
+    "ceg": "HDD",
+    "partner": "Rába",
+    "szallasado": "Több szállásadó",
+    "address_count": 13,
+    "employees": 57,
+    "capacity": 100,
+    "free": 43,
+    "nights": 0,
+    "cost": 198400,
+    "refreshed_at": "2026-06-24T00:00:00Z"
+  }
+]

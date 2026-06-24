@@ -1,0 +1,10 @@
+{
+  "name": "hdd-szallas-dashboard-static",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/generate-dashboard.mjs",
+    "build:sample": "node scripts/generate-dashboard.mjs --sample"
+  }
+}
