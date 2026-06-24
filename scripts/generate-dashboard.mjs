@@ -22,80 +22,25 @@ const USE_SAMPLE = process.argv.includes('--sample') || /^true$/i.test(process.e
 
 const CITY_TO_COUNTY = new Map(Object.entries({
   'Budapest': 'Budapest',
-
-  // Bács-Kiskun
   'Kecskemét': 'Bács-Kiskun', 'Baja': 'Bács-Kiskun', 'Kiskunfélegyháza': 'Bács-Kiskun',
-
-  // Baranya
   'Pécs': 'Baranya', 'Szalánta': 'Baranya',
-
-  // Békés
   'Békéscsaba': 'Békés', 'Orosháza': 'Békés',
-
-  // Borsod-Abaúj-Zemplén
   'Miskolc': 'Borsod-Abaúj-Zemplén', 'Ózd': 'Borsod-Abaúj-Zemplén', 'Kazincbarcika': 'Borsod-Abaúj-Zemplén',
-
-  // Csongrád-Csanád
   'Szeged': 'Csongrád-Csanád', 'Hódmezővásárhely': 'Csongrád-Csanád',
-
-  // Fejér
-  'Székesfehérvár': 'Fejér', 'Dunaújváros': 'Fejér', 'Mór': 'Fejér', 'Ercsi': 'Fejér',
-  'Bodajk': 'Fejér', 'Nádasdladány': 'Fejér',
-
-  // Győr-Moson-Sopron
-  'Győr': 'Győr-Moson-Sopron', 'Sopron': 'Győr-Moson-Sopron', 'Mosonmagyaróvár': 'Győr-Moson-Sopron',
-  'Tét': 'Győr-Moson-Sopron',
-
-  // Hajdú-Bihar
-  'Debrecen': 'Hajdú-Bihar', 'Hajdúböszörmény': 'Hajdú-Bihar', 'Hajdúszoboszló': 'Hajdú-Bihar',
-  'Nyíradony': 'Hajdú-Bihar',
-
-  // Heves
+  'Székesfehérvár': 'Fejér', 'Dunaújváros': 'Fejér', 'Mór': 'Fejér', 'Ercsi': 'Fejér', 'Bodajk': 'Fejér', 'Nádasdladány': 'Fejér',
+  'Győr': 'Győr-Moson-Sopron', 'Sopron': 'Győr-Moson-Sopron', 'Mosonmagyaróvár': 'Győr-Moson-Sopron', 'Tét': 'Győr-Moson-Sopron',
+  'Debrecen': 'Hajdú-Bihar', 'Hajdúböszörmény': 'Hajdú-Bihar', 'Hajdúszoboszló': 'Hajdú-Bihar', 'Nyíradony': 'Hajdú-Bihar',
   'Eger': 'Heves', 'Gyöngyös': 'Heves', 'Hatvan': 'Heves', 'Apc': 'Heves',
-
-  // Jász-Nagykun-Szolnok
-  'Szolnok': 'Jász-Nagykun-Szolnok', 'Jászberény': 'Jász-Nagykun-Szolnok',
-  'Pusztamonostor': 'Jász-Nagykun-Szolnok', 'Jászfényszaru': 'Jász-Nagykun-Szolnok',
-  'Tiszajenő': 'Jász-Nagykun-Szolnok', 'Jászszentandrás': 'Jász-Nagykun-Szolnok',
-
-  // Komárom-Esztergom
-  'Tatabánya': 'Komárom-Esztergom', 'Komárom': 'Komárom-Esztergom', 'Oroszlány': 'Komárom-Esztergom',
-  'Esztergom': 'Komárom-Esztergom', 'Ászár': 'Komárom-Esztergom', 'Bábolna': 'Komárom-Esztergom',
-  'Nyergesújfalu': 'Komárom-Esztergom', 'Környe': 'Komárom-Esztergom', 'Császár': 'Komárom-Esztergom',
-  'Bakonysárkány': 'Komárom-Esztergom', 'Kisbér': 'Komárom-Esztergom', 'Tata': 'Komárom-Esztergom',
-  'Bana': 'Komárom-Esztergom',
-
-  // Nógrád
-  'Salgótarján': 'Nógrád', 'Rétság': 'Nógrád', 'Szendehely': 'Nógrád', 'Nagyoroszi': 'Nógrád',
-  'Bátonyterenye': 'Nógrád', 'Pásztó': 'Nógrád',
-
-  // Pest
-  'Érd': 'Pest', 'Dunakeszi': 'Pest', 'Cegléd': 'Pest', 'Gödöllő': 'Pest', 'Vác': 'Pest',
-  'Szentendre': 'Pest', 'Szigetszentmiklós': 'Pest', 'Nagykőrös': 'Pest', 'Nagykáta': 'Pest',
-  'Gyál': 'Pest', 'Monor': 'Pest', 'Budaörs': 'Pest', 'Törökbálint': 'Pest',
-  'Halásztelek': 'Pest', 'Budakeszi': 'Pest', 'Szigethalom': 'Pest', 'Áporka': 'Pest',
-
-  // Somogy
+  'Szolnok': 'Jász-Nagykun-Szolnok', 'Jászberény': 'Jász-Nagykun-Szolnok', 'Pusztamonostor': 'Jász-Nagykun-Szolnok', 'Jászfényszaru': 'Jász-Nagykun-Szolnok', 'Tiszajenő': 'Jász-Nagykun-Szolnok', 'Jászszentandrás': 'Jász-Nagykun-Szolnok',
+  'Tatabánya': 'Komárom-Esztergom', 'Komárom': 'Komárom-Esztergom', 'Oroszlány': 'Komárom-Esztergom', 'Esztergom': 'Komárom-Esztergom', 'Ászár': 'Komárom-Esztergom', 'Bábolna': 'Komárom-Esztergom', 'Nyergesújfalu': 'Komárom-Esztergom', 'Környe': 'Komárom-Esztergom', 'Császár': 'Komárom-Esztergom', 'Bakonysárkány': 'Komárom-Esztergom', 'Kisbér': 'Komárom-Esztergom', 'Tata': 'Komárom-Esztergom', 'Bana': 'Komárom-Esztergom',
+  'Salgótarján': 'Nógrád', 'Rétság': 'Nógrád', 'Szendehely': 'Nógrád', 'Nagyoroszi': 'Nógrád', 'Bátonyterenye': 'Nógrád', 'Pásztó': 'Nógrád',
+  'Érd': 'Pest', 'Dunakeszi': 'Pest', 'Cegléd': 'Pest', 'Gödöllő': 'Pest', 'Vác': 'Pest', 'Szentendre': 'Pest', 'Szigetszentmiklós': 'Pest', 'Nagykőrös': 'Pest', 'Nagykáta': 'Pest', 'Gyál': 'Pest', 'Monor': 'Pest', 'Budaörs': 'Pest', 'Törökbálint': 'Pest', 'Halásztelek': 'Pest', 'Budakeszi': 'Pest', 'Szigethalom': 'Pest', 'Áporka': 'Pest',
   'Kaposvár': 'Somogy', 'Siófok': 'Somogy', 'Nemesvid': 'Somogy', 'Zákányfalu': 'Somogy',
-
-  // Szabolcs-Szatmár-Bereg
   'Nyíregyháza': 'Szabolcs-Szatmár-Bereg', 'Kisvárda': 'Szabolcs-Szatmár-Bereg', 'Tiszadob': 'Szabolcs-Szatmár-Bereg',
-
-  // Tolna
   'Szekszárd': 'Tolna', 'Simontornya': 'Tolna',
-
-  // Vas
   'Szombathely': 'Vas',
-
-  // Veszprém
-  'Veszprém': 'Veszprém', 'Pápa': 'Veszprém', 'Ajka': 'Veszprém', 'Balatonfüred': 'Veszprém',
-  'Dudar': 'Veszprém', 'Mezőlak': 'Veszprém',
-
-  // Zala
-  'Zalaegerszeg': 'Zala', 'Nagykanizsa': 'Zala', 'Zalakomár': 'Zala', 'Nagybakónak': 'Zala',
-  'Szepetnek': 'Zala', 'Becsehely': 'Zala',
-
-  // Nem térképezhető, de az összlétszámban szerepelnie kell
+  'Veszprém': 'Veszprém', 'Pápa': 'Veszprém', 'Ajka': 'Veszprém', 'Balatonfüred': 'Veszprém', 'Dudar': 'Veszprém', 'Mezőlak': 'Veszprém',
+  'Zalaegerszeg': 'Zala', 'Nagykanizsa': 'Zala', 'Zalakomár': 'Zala', 'Nagybakónak': 'Zala', 'Szepetnek': 'Zala', 'Becsehely': 'Zala',
   'Egyéb / saját lakás': 'Egyéb / saját lakás'
 }));
 
@@ -136,6 +81,9 @@ function normRow(row) {
   const capacity = Math.round(num(row.capacity ?? row.ferohely));
   const free = Math.max(0, Math.round(num(row.free ?? row.szabad_hely ?? (capacity - employees))));
   const cost = num(row.cost ?? row.koltseg ?? row.becsult_havi_netto_koltseg);
+  const lostCost = num(row.lost_cost ?? row.becsult_havi_bukas ?? 0);
+  const fixedCost = num(row.fixed_cost ?? row.fix_dijas_havi_koltseg ?? 0);
+  const variableCost = num(row.variable_cost ?? row.fo_ej_alapu_koltseg ?? Math.max(cost - fixedCost, 0));
   const nights = Math.round(num(row.nights ?? row.ejszakak ?? (employees * 30)));
   const addressCount = Math.round(num(row.address_count ?? row.cim_db ?? row.sorok ?? 1));
   return {
@@ -151,6 +99,9 @@ function normRow(row) {
     free,
     nights,
     cost,
+    lost_cost: lostCost,
+    fixed_cost: fixedCost,
+    variable_cost: variableCost,
     refreshed_at: row.refreshed_at || null
   };
 }
@@ -166,7 +117,6 @@ function buildDash(feedRows, geo) {
   const megyeMap = new Map();
   const cegMap = new Map();
   const partnerMap = new Map();
-
   const occ = [];
 
   for (const r of rows) {
@@ -211,7 +161,7 @@ function buildDash(feedRows, geo) {
       address: r.city,
       provider: r.szallasado,
       company: r.ceg,
-      fixed_type: 'Városi összesítő',
+      fixed_type: r.fixed_cost > 0 ? 'Fix díjas / városi összesítő' : 'Városi összesítő',
       capacity: r.capacity,
       current: r.employees,
       free: r.free,
@@ -219,8 +169,10 @@ function buildDash(feedRows, geo) {
       util_pct: utilPct,
       days: 30,
       period_cost: Math.round(r.cost),
-      lost_cost: Math.round(slotCost * r.free),
-      occupied_cost: Math.round(slotCost * r.employees),
+      lost_cost: Math.round(r.lost_cost),
+      occupied_cost: Math.max(Math.round(r.cost - r.lost_cost), 0),
+      fixed_cost: Math.round(r.fixed_cost),
+      variable_cost: Math.round(r.variable_cost),
       slot_cost: Math.round(slotCost),
       partners: r.partner,
       partner_count: Math.max(1, partners.length),
@@ -249,6 +201,8 @@ function buildDash(feedRows, geo) {
       util_avg: cap ? cur / cap : 0,
       period_cost_total: OCC_FIX.reduce((a, r) => a + r.period_cost, 0),
       lost_cost_total: OCC_FIX.reduce((a, r) => a + r.lost_cost, 0),
+      fixed_cost_total: OCC_FIX.reduce((a, r) => a + r.fixed_cost, 0),
+      variable_cost_total: OCC_FIX.reduce((a, r) => a + r.variable_cost, 0),
       critical_count: OCC_FIX.filter(r => r.capacity > 0 && r.util_pct < 70).length
     },
     GENERATED_AT: new Date().toISOString()
@@ -289,7 +243,7 @@ async function loadFeedRows() {
     console.log('[build] Using sample feed');
     return JSON.parse(await fs.readFile(SAMPLE_PATH, 'utf8'));
   }
-  const select = 'city,ceg,partner,szallasado,address_count,employees,capacity,free,nights,cost,refreshed_at';
+  const select = 'city,ceg,partner,szallasado,address_count,employees,capacity,free,nights,cost,lost_cost,fixed_cost,variable_cost,refreshed_at';
   const query = `/rest/v1/${encodeURIComponent(FEED_TABLE)}?select=${encodeURIComponent(select)}&order=employees.desc`;
   console.log(`[build] Fetching Supabase feed: ${FEED_TABLE}`);
   return await supabaseFetch(query);
@@ -324,7 +278,6 @@ function patchBundledHtml(bundleHtml, staticScript) {
     throw new Error(`Cannot parse __bundler/template JSON: ${err.message}`);
   }
   const patchedTemplate = patchPlainHtmlTemplate(templateHtml, staticScript);
-  // Escape < so no embedded </script> can terminate the __bundler/template script.
   const safeJson = JSON.stringify(patchedTemplate).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   return bundleHtml.slice(0, start) + '\n' + safeJson + '\n' + bundleHtml.slice(close);
 }
@@ -351,11 +304,15 @@ async function main() {
     megye_rows: dash.EMBEDDED.megye.length,
     ceg_rows: dash.EMBEDDED.ceg.length,
     partner_rows: dash.EMBEDDED.partner.length,
-    occ_rows: dash.OCC_FIX.length
+    occ_rows: dash.OCC_FIX.length,
+    lost_cost_total: dash.OCC_SUMMARY.lost_cost_total,
+    fixed_cost_total: dash.OCC_SUMMARY.fixed_cost_total,
+    variable_cost_total: dash.OCC_SUMMARY.variable_cost_total
   }, null, 2), 'utf8');
 
   console.log(`[build] Done: ${OUT_HTML}`);
   console.log(`[build] Feed rows: ${feedRows.length}, dashboard rows: ${dash.OCC_FIX.length}`);
+  console.log(`[build] Lost cost total: ${dash.OCC_SUMMARY.lost_cost_total}`);
 }
 
 main().catch(err => {
