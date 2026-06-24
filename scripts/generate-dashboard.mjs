@@ -22,31 +22,86 @@ const USE_SAMPLE = process.argv.includes('--sample') || /^true$/i.test(process.e
 
 const CITY_TO_COUNTY = new Map(Object.entries({
   'Budapest': 'Budapest',
+
+  // Bács-Kiskun
   'Kecskemét': 'Bács-Kiskun', 'Baja': 'Bács-Kiskun', 'Kiskunfélegyháza': 'Bács-Kiskun',
+
+  // Baranya
+  'Pécs': 'Baranya', 'Szalánta': 'Baranya',
+
+  // Békés
   'Békéscsaba': 'Békés', 'Orosháza': 'Békés',
+
+  // Borsod-Abaúj-Zemplén
   'Miskolc': 'Borsod-Abaúj-Zemplén', 'Ózd': 'Borsod-Abaúj-Zemplén', 'Kazincbarcika': 'Borsod-Abaúj-Zemplén',
+
+  // Csongrád-Csanád
   'Szeged': 'Csongrád-Csanád', 'Hódmezővásárhely': 'Csongrád-Csanád',
-  'Székesfehérvár': 'Fejér', 'Dunaújváros': 'Fejér', 'Mór': 'Fejér',
+
+  // Fejér
+  'Székesfehérvár': 'Fejér', 'Dunaújváros': 'Fejér', 'Mór': 'Fejér', 'Ercsi': 'Fejér',
+  'Bodajk': 'Fejér', 'Nádasdladány': 'Fejér',
+
+  // Győr-Moson-Sopron
   'Győr': 'Győr-Moson-Sopron', 'Sopron': 'Győr-Moson-Sopron', 'Mosonmagyaróvár': 'Győr-Moson-Sopron',
-  'Debrecen': 'Hajdú-Bihar', 'Hajdúböszörmény': 'Hajdú-Bihar',
-  'Eger': 'Heves', 'Gyöngyös': 'Heves', 'Hatvan': 'Heves',
+  'Tét': 'Győr-Moson-Sopron',
+
+  // Hajdú-Bihar
+  'Debrecen': 'Hajdú-Bihar', 'Hajdúböszörmény': 'Hajdú-Bihar', 'Hajdúszoboszló': 'Hajdú-Bihar',
+  'Nyíradony': 'Hajdú-Bihar',
+
+  // Heves
+  'Eger': 'Heves', 'Gyöngyös': 'Heves', 'Hatvan': 'Heves', 'Apc': 'Heves',
+
+  // Jász-Nagykun-Szolnok
   'Szolnok': 'Jász-Nagykun-Szolnok', 'Jászberény': 'Jász-Nagykun-Szolnok',
-  'Tatabánya': 'Komárom-Esztergom', 'Komárom': 'Komárom-Esztergom', 'Oroszlány': 'Komárom-Esztergom', 'Esztergom': 'Komárom-Esztergom',
-  'Salgótarján': 'Nógrád',
-  'Pécs': 'Baranya',
-  'Kaposvár': 'Somogy', 'Siófok': 'Somogy',
-  'Nyíregyháza': 'Szabolcs-Szatmár-Bereg', 'Kisvárda': 'Szabolcs-Szatmár-Bereg',
-  'Szekszárd': 'Tolna',
-  'Szombathely': 'Vas',
-  'Veszprém': 'Veszprém', 'Pápa': 'Veszprém', 'Ajka': 'Veszprém',
-  'Zalaegerszeg': 'Zala', 'Nagykanizsa': 'Zala',
+  'Pusztamonostor': 'Jász-Nagykun-Szolnok', 'Jászfényszaru': 'Jász-Nagykun-Szolnok',
+  'Tiszajenő': 'Jász-Nagykun-Szolnok', 'Jászszentandrás': 'Jász-Nagykun-Szolnok',
+
+  // Komárom-Esztergom
+  'Tatabánya': 'Komárom-Esztergom', 'Komárom': 'Komárom-Esztergom', 'Oroszlány': 'Komárom-Esztergom',
+  'Esztergom': 'Komárom-Esztergom', 'Ászár': 'Komárom-Esztergom', 'Bábolna': 'Komárom-Esztergom',
+  'Nyergesújfalu': 'Komárom-Esztergom', 'Környe': 'Komárom-Esztergom', 'Császár': 'Komárom-Esztergom',
+  'Bakonysárkány': 'Komárom-Esztergom', 'Kisbér': 'Komárom-Esztergom', 'Tata': 'Komárom-Esztergom',
+  'Bana': 'Komárom-Esztergom',
+
+  // Nógrád
+  'Salgótarján': 'Nógrád', 'Rétság': 'Nógrád', 'Szendehely': 'Nógrád', 'Nagyoroszi': 'Nógrád',
+  'Bátonyterenye': 'Nógrád', 'Pásztó': 'Nógrád',
+
+  // Pest
   'Érd': 'Pest', 'Dunakeszi': 'Pest', 'Cegléd': 'Pest', 'Gödöllő': 'Pest', 'Vác': 'Pest',
   'Szentendre': 'Pest', 'Szigetszentmiklós': 'Pest', 'Nagykőrös': 'Pest', 'Nagykáta': 'Pest',
-  'Gyál': 'Pest', 'Monor': 'Pest', 'Budaörs': 'Pest', 'Törökbálint': 'Pest'
+  'Gyál': 'Pest', 'Monor': 'Pest', 'Budaörs': 'Pest', 'Törökbálint': 'Pest',
+  'Halásztelek': 'Pest', 'Budakeszi': 'Pest', 'Szigethalom': 'Pest', 'Áporka': 'Pest',
+
+  // Somogy
+  'Kaposvár': 'Somogy', 'Siófok': 'Somogy', 'Nemesvid': 'Somogy', 'Zákányfalu': 'Somogy',
+
+  // Szabolcs-Szatmár-Bereg
+  'Nyíregyháza': 'Szabolcs-Szatmár-Bereg', 'Kisvárda': 'Szabolcs-Szatmár-Bereg', 'Tiszadob': 'Szabolcs-Szatmár-Bereg',
+
+  // Tolna
+  'Szekszárd': 'Tolna', 'Simontornya': 'Tolna',
+
+  // Vas
+  'Szombathely': 'Vas',
+
+  // Veszprém
+  'Veszprém': 'Veszprém', 'Pápa': 'Veszprém', 'Ajka': 'Veszprém', 'Balatonfüred': 'Veszprém',
+  'Dudar': 'Veszprém', 'Mezőlak': 'Veszprém',
+
+  // Zala
+  'Zalaegerszeg': 'Zala', 'Nagykanizsa': 'Zala', 'Zalakomár': 'Zala', 'Nagybakónak': 'Zala',
+  'Szepetnek': 'Zala', 'Becsehely': 'Zala',
+
+  // Nem térképezhető, de az összlétszámban szerepelnie kell
+  'Egyéb / saját lakás': 'Egyéb / saját lakás'
 }));
 
 const COUNTY_TO_REGION = new Map(Object.entries({
   'Budapest': 'Közép-Magyarország',
+  'Egyéb / saját lakás': 'Egyéb / saját lakás',
   'Pest': 'Közép-Magyarország',
   'Fejér': 'Közép-Dunántúl',
   'Komárom-Esztergom': 'Közép-Dunántúl',
