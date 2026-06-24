@@ -1,0 +1,49 @@
+name: Build static szállás dashboard
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Napi futás: 02:15 UTC. Nyári időszámításban kb. 04:15 Budapest.
+    - cron: '15 2 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate dashboard HTML
+        run: node scripts/generate-dashboard.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_FEED_TABLE: housing_city_pin_feed_cache_v2
+          REFRESH_CACHE: 'true'
+          REFRESH_RPC: refresh_housing_city_pin_feed_cache_v2
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
