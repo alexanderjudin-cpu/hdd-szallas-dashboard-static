@@ -16,6 +16,7 @@ const OUT_INFO = path.join(OUT_DIR, 'build-info.json');
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
 const FEED_TABLE = process.env.SUPABASE_FEED_TABLE || 'housing_city_pin_feed_cache_v2';
+const PARTNER_FEED_VIEW = process.env.SUPABASE_PARTNER_FEED_VIEW || 'v_housing_partner_cost_feed';
 const REFRESH_CACHE = /^true$/i.test(process.env.REFRESH_CACHE || 'false');
 const REFRESH_RPC = process.env.REFRESH_RPC || 'refresh_housing_city_pin_feed_cache_v2';
 const USE_SAMPLE = process.argv.includes('--sample') || /^true$/i.test(process.env.USE_SAMPLE || 'false');
@@ -73,10 +74,18 @@ function num(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function countyForCity(city) {
+  return String(CITY_TO_COUNTY.get(city) || '').trim();
+}
+
+function regionForCounty(county) {
+  return String(COUNTY_TO_REGION.get(county) || 'Ismeretlen régió').trim();
+}
+
 function normRow(row) {
   const city = String(row.city || row.varos || row.város || '').trim();
-  const county = String(row.megye || row.county || CITY_TO_COUNTY.get(city) || '').trim();
-  const region = String(row.regio || row.region || COUNTY_TO_REGION.get(county) || 'Ismeretlen régió').trim();
+  const county = String(row.megye || row.county || countyForCity(city) || '').trim();
+  const region = String(row.regio || row.region || regionForCounty(county)).trim();
   const employees = Math.round(num(row.employees ?? row.munkavallalok ?? row.aktualis_lakok));
   const capacity = Math.round(num(row.capacity ?? row.ferohely));
   const free = Math.max(0, Math.round(num(row.free ?? row.szabad_hely ?? (capacity - employees))));
@@ -114,13 +123,55 @@ function normRow(row) {
   };
 }
 
+function normPartnerRow(row) {
+  const city = String(row.city || row.varos || row.város || '').trim();
+  const county = String(row.megye || row.county || countyForCity(city) || '').trim();
+  const region = String(row.regio || row.region || regionForCounty(county)).trim();
+  return {
+    city,
+    megye: county,
+    regio: region,
+    ceg: String(row.ceg || row.company || '').trim() || 'Nincs adat',
+    partner: String(row.partner || row.partner_nev || '').trim() || 'Nincs adat',
+    row_count: Math.round(num(row.row_count ?? row.sorok ?? 1)),
+    employees: Math.round(num(row.employees ?? row.munkavallalok ?? row.egyedi_munkavallalo)),
+    nights: Math.round(num(row.nights ?? row.ejszakak)),
+    cost: num(row.cost ?? row.netto_osszeg ?? row.koltseg),
+    billable_amount: num(row.billable_amount ?? row.szamlazando ?? row.szamlazott),
+    refreshed_at: row.refreshed_at || null
+  };
+}
+
 function addAgg(map, key, patch) {
   if (!map.has(key)) map.set(key, { ...patch, munkavallalok: 0, ejszakak: 0, koltseg: 0, sorok: 0 });
   return map.get(key);
 }
 
-function buildDash(feedRows, geo) {
+function addPartnerAgg(map, r) {
+  if (!r.partner || r.partner === 'Nincs adat') return;
+  const pk = `${r.partner}||${r.megye || 'Ismeretlen megye'}`;
+  const p = addAgg(map, pk, { partner: r.partner, megye: r.megye || 'Ismeretlen megye', regio: r.regio || 'Ismeretlen régió' });
+  p.munkavallalok += r.employees;
+  p.ejszakak += r.nights;
+  p.koltseg += r.cost;
+  p.szamlazando = num(p.szamlazando) + r.billable_amount;
+  p.sorok += r.row_count || 1;
+}
+
+function buildDash(feedRows, geo, partnerFeedRows = []) {
   const rows = feedRows.map(normRow).filter(r => r.city && r.megye);
+  const partnerRows = partnerFeedRows.length
+    ? partnerFeedRows.map(normPartnerRow).filter(r => r.partner && r.megye)
+    : rows.map(r => ({
+        partner: r.partner,
+        megye: r.megye,
+        regio: r.regio,
+        employees: r.employees,
+        nights: r.nights,
+        cost: r.cost,
+        billable_amount: 0,
+        row_count: r.address_count
+      }));
 
   const megyeMap = new Map();
   const cegMap = new Map();
@@ -146,13 +197,6 @@ function buildDash(feedRows, geo) {
       .map(s => s.trim())
       .filter(Boolean)
       .slice(0, 8);
-    const partnerLabel = partners.length ? partners.join(', ') : 'Nincs adat';
-    const pk = `${partnerLabel}||${r.megye}`;
-    const p = addAgg(partnerMap, pk, { partner: partnerLabel, megye: r.megye, regio: r.regio });
-    p.munkavallalok += r.employees;
-    p.ejszakak += r.nights || r.employees * 30;
-    p.koltseg += r.cost;
-    p.sorok += r.address_count || 1;
 
     const hasFixedOccupancy = r.fixed_address_count > 0 || r.fixed_capacity > 0 || r.fixed_cost > 0 || r.lost_cost > 0;
     if (!hasFixedOccupancy) continue;
@@ -192,6 +236,8 @@ function buildDash(feedRows, geo) {
     });
   }
 
+  for (const r of partnerRows) addPartnerAgg(partnerMap, r);
+
   const sort = arr => arr.sort((a, b) => num(b.munkavallalok) - num(a.munkavallalok) || num(b.koltseg) - num(a.koltseg));
   const OCC_FIX = occ.sort((a, b) => num(b.lost_cost) - num(a.lost_cost) || num(b.free) - num(a.free));
   const cap = OCC_FIX.reduce((a, r) => a + r.capacity, 0);
@@ -216,6 +262,8 @@ function buildDash(feedRows, geo) {
       lost_cost_total: OCC_FIX.reduce((a, r) => a + r.lost_cost, 0),
       fixed_cost_total: OCC_FIX.reduce((a, r) => a + r.fixed_cost, 0),
       variable_cost_total: rows.reduce((a, r) => a + r.variable_cost, 0),
+      partner_cost_total: partnerRows.reduce((a, r) => a + r.cost, 0),
+      partner_billable_total: partnerRows.reduce((a, r) => a + r.billable_amount, 0),
       portfolio_employee_total: rows.reduce((a, r) => a + r.employees, 0),
       portfolio_capacity_total: rows.reduce((a, r) => a + r.capacity, 0),
       portfolio_free_total: rows.reduce((a, r) => a + r.free, 0),
@@ -266,6 +314,19 @@ async function loadFeedRows() {
   return await supabaseFetch(query);
 }
 
+async function loadPartnerFeedRows() {
+  if (USE_SAMPLE) return [];
+  const select = 'city,ceg,partner,row_count,employees,nights,cost,billable_amount,refreshed_at';
+  const query = `/rest/v1/${encodeURIComponent(PARTNER_FEED_VIEW)}?select=${encodeURIComponent(select)}&order=cost.desc`;
+  try {
+    console.log(`[build] Fetching Supabase partner feed: ${PARTNER_FEED_VIEW}`);
+    return await supabaseFetch(query);
+  } catch (err) {
+    console.warn(`[build] Partner feed failed, falling back to city cache partner strings: ${err.message}`);
+    return [];
+  }
+}
+
 function makeStaticDashScript(dash, rowCount) {
   const json = JSON.stringify(dash).replace(/</g, '\\u003c');
   return `<!-- ================================================================= -->\n<!-- STATIC DASHBOARD DATA - GENERATED BY GITHUB ACTIONS                -->\n<!-- KINÉZETHEZ NEM NYÚL: csak window.DASH adatot állít be.              -->\n<!-- ================================================================= -->\n<script>\n(function(){\n  window.__DASH_BOOTED = true;\n  window.DASH = ${json};\n  window.__DASH_SOURCE = 'static-generated';\n  window.__DASH_ROWCOUNT = ${Number(rowCount) || 0};\n})();\n<\/script>\n<!-- ================= STATIC DASHBOARD DATA VÉGE ===================== -->`;
@@ -303,13 +364,14 @@ async function main() {
   await fs.mkdir(OUT_DIR, { recursive: true });
   await maybeRefreshCache();
 
-  const [feedRows, geo, template] = await Promise.all([
+  const [feedRows, partnerFeedRows, geo, template] = await Promise.all([
     loadFeedRows(),
+    loadPartnerFeedRows(),
     fs.readFile(GEO_PATH, 'utf8').then(JSON.parse),
     fs.readFile(TEMPLATE_PATH, 'utf8')
   ]);
 
-  const dash = buildDash(feedRows, geo);
+  const dash = buildDash(feedRows, geo, partnerFeedRows);
   const staticScript = makeStaticDashScript(dash, feedRows.length);
   const finalHtml = patchBundledHtml(template, staticScript);
 
@@ -317,7 +379,9 @@ async function main() {
   await fs.writeFile(OUT_INFO, JSON.stringify({
     generated_at: dash.GENERATED_AT,
     source_table: USE_SAMPLE ? 'sample-feed.json' : FEED_TABLE,
+    partner_feed_source: USE_SAMPLE ? null : PARTNER_FEED_VIEW,
     feed_rows: feedRows.length,
+    partner_feed_rows: partnerFeedRows.length,
     megye_rows: dash.EMBEDDED.megye.length,
     ceg_rows: dash.EMBEDDED.ceg.length,
     partner_rows: dash.EMBEDDED.partner.length,
@@ -330,14 +394,16 @@ async function main() {
     lost_cost_total: dash.OCC_SUMMARY.lost_cost_total,
     fixed_cost_total: dash.OCC_SUMMARY.fixed_cost_total,
     variable_cost_total: dash.OCC_SUMMARY.variable_cost_total,
+    partner_cost_total: dash.OCC_SUMMARY.partner_cost_total,
+    partner_billable_total: dash.OCC_SUMMARY.partner_billable_total,
     portfolio_employee_total: dash.OCC_SUMMARY.portfolio_employee_total,
     portfolio_capacity_total: dash.OCC_SUMMARY.portfolio_capacity_total,
     portfolio_cost_total: dash.OCC_SUMMARY.portfolio_cost_total
   }, null, 2), 'utf8');
 
   console.log(`[build] Done: ${OUT_HTML}`);
-  console.log(`[build] Feed rows: ${feedRows.length}, fixed dashboard rows: ${dash.OCC_FIX.length}`);
-  console.log(`[build] Fixed free total: ${dash.OCC_SUMMARY.free_total}`);
+  console.log(`[build] Feed rows: ${feedRows.length}, partner feed rows: ${partnerFeedRows.length}, fixed dashboard rows: ${dash.OCC_FIX.length}`);
+  console.log(`[build] Partner cost total: ${dash.OCC_SUMMARY.partner_cost_total}`);
   console.log(`[build] Lost cost total: ${dash.OCC_SUMMARY.lost_cost_total}`);
 }
 
